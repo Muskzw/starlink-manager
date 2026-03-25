@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Users, BarChart3, Wifi, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function AdminPanel() {
   const [users, setUsers] = useState([]);
-  const [stats, setStats] = useState({ subsCount: 0, revenue: 0, failedParams: 0 });
+  const [stats, setStats] = useState({ subsCount: 0, revenue: 0, failedPayments: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,17 +34,33 @@ export default function AdminPanel() {
         setLoading(false);
       } catch (err) {
         console.error(err);
+        toast.error('Failed to load admin data');
         setLoading(false);
       }
     }
     fetchData();
   }, []);
 
+  const handleInvite = () => {
+    toast.promise(
+      new Promise(resolve => setTimeout(resolve, 1500)),
+      {
+        loading: 'Sending invite link...',
+        success: <b>Invite sent successfully!</b>,
+        error: <b>Could not send invite.</b>,
+      }
+    );
+  };
+
+  const handleManageUser = (user) => {
+    toast(`Managing user: ${user.name} is currently not available offline.`, { icon: '⚙️' });
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1>Admin Panel</h1>
-        <button className="btn btn-primary">
+        <button className="btn btn-primary" onClick={handleInvite}>
           <Users size={18} />
           Invite User
         </button>
@@ -119,7 +136,7 @@ export default function AdminPanel() {
                         </span>
                       </td>
                       <td>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>Manage</button>
+                        <button className="btn btn-secondary" onClick={() => handleManageUser(user)} style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>Manage</button>
                       </td>
                     </tr>
                   ))}

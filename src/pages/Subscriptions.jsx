@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function Subscriptions() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -7,17 +8,14 @@ export default function Subscriptions() {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
-  // Form State
-  const [formData, setFormData] = useState({
-    customer: '',
-    location: '',
-    plan: 'Business',
-    cost: '',
-    date: '',
-    cardId: '',
-    status: 'Active'
-  });
+  const emptyForm = {
+    customer: '', location: '', plan: 'Business',
+    cost: '', date: '', cardId: '', status: 'Active'
+  };
+
+  const [formData, setFormData] = useState(emptyForm);
 
   const fetchData = async () => {
     try {
@@ -29,14 +27,9 @@ export default function Subscriptions() {
       const cardsData = await cardsRes.json();
       
       setSubscriptions(subsData.map(sub => ({
-        id: sub.id,
-        customer: sub.customer,
-        location: sub.location,
-        plan: sub.plan,
-        cost: `$${sub.cost}`,
-        date: sub.date,
-        card: sub.card ? `${sub.card.type} ending ${sub.card.last4}` : 'Unassigned',
-        status: sub.status
+        ...sub,
+        costLabel: `$${sub.cost}`,
+        cardLabel: sub.card ? `${sub.card.type} ending ${sub.card.last4}` : 'Unassigned',
       })));
       setCards(cardsData);
       
@@ -46,6 +39,7 @@ export default function Subscriptions() {
       setLoading(false);
     } catch (err) {
       console.error(err);
+      toast.error('Failed to load subscriptions');
       setLoading(false);
     }
   };
@@ -54,28 +48,68 @@ export default function Subscriptions() {
     fetchData();
   }, []);
 
-  const handleSave = async () => {
-    setSaving(true);
+  const openAddModal = () => {
+    setEditingId(null);
+    setFormData({ ...emptyForm, cardId: cards.length ? cards[0].id : '' });
+    setModalOpen(true);
+  };
+
+  const openEditModal = (sub) => {
+    setEditingId(sub.id);
+    setFormData({
+      customer: sub.customer,
+      location: sub.location,
+      plan: sub.plan,
+      cost: sub.cost,
+      date: sub.date.replace(/[^0-9]/g, ''),
+      cardId: sub.cardId || '',
+      status: sub.status
+    });
+    setModalOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this subscription?")) return;
     try {
-      await fetch('http://localhost:5000/api/subscriptions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          cardId: formData.cardId || null,
-          cost: parseFloat(formData.cost) || 0,
-          date: formData.date.toString() + (formData.date === '1' ? 'st' : formData.date === '2' ? 'nd' : formData.date === '3' ? 'rd' : 'th')
-        })
-      });
-      setModalOpen(false);
-      await fetchData(); // Refresh list
-      // Reset form
-      setFormData({
-        customer: '', location: '', plan: 'Business',
-        cost: '', date: '', cardId: cards.length ? cards[0].id : '', status: 'Active'
-      });
+      toast.loading("Deleting...", { id: "delete-toast" });
+      const res = await fetch(`http://localhost:5000/api/subscriptions/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error("Failed to delete");
+      toast.success("Subscription deleted!", { id: "delete-toast" });
+      await fetchData();
     } catch (err) {
-      console.error('Failed to save', err);
+      toast.error(err.message, { id: "delete-toast" });
+    }
+  };
+
+  const handleSave = async () => {
+    if (!formData.customer || !formData.location || !formData.cost || !formData.date) {
+      return toast.error("Please fill all fields");
+    }
+
+    setSaving(true);
+    const payload = {
+      ...formData,
+      cardId: formData.cardId || null,
+      cost: parseFloat(formData.cost) || 0,
+      date: formData.date.toString() + (formData.date === '1' ? 'st' : formData.date === '2' ? 'nd' : formData.date === '3' ? 'rd' : 'th')
+    };
+
+    try {
+      const url = editingId ? `http://localhost:5000/api/subscriptions/${editingId}` : 'http://localhost:5000/api/subscriptions';
+      const method = editingId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      
+      toast.success(editingId ? "Subscription updated!" : "Subscription created!");
+      setModalOpen(false);
+      await fetchData();
+    } catch (err) {
+      toast.error(err.message);
     } finally {
       setSaving(false);
     }
@@ -85,7 +119,7 @@ export default function Subscriptions() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1>Subscriptions</h1>
-        <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
+        <button className="btn btn-primary" onClick={openAddModal}>
           <Plus size={18} />
           Add Subscription
         </button>
@@ -115,9 +149,9 @@ export default function Subscriptions() {
                     <td style={{ fontWeight: 600 }}>{sub.customer}</td>
                     <td>{sub.location}</td>
                     <td>{sub.plan}</td>
-                    <td>{sub.cost}</td>
+                    <td>{sub.costLabel}</td>
                     <td>{sub.date}</td>
-                    <td className="text-muted">{sub.card}</td>
+                    <td className="text-muted">{sub.cardLabel}</td>
                     <td>
                       <span className={`badge ${sub.status === 'Active' ? 'badge-success' : 'badge-danger'}`}>
                         {sub.status}
@@ -125,10 +159,10 @@ export default function Subscriptions() {
                     </td>
                     <td>
                       <div className="flex gap-2">
-                        <button className="btn-icon" style={{ width: 32, height: 32 }}>
+                        <button className="btn-icon" onClick={() => openEditModal(sub)} style={{ width: 32, height: 32 }}>
                           <Edit size={16} />
                         </button>
-                        <button className="btn-icon" style={{ width: 32, height: 32, color: 'var(--danger-color)' }}>
+                        <button className="btn-icon" onClick={() => handleDelete(sub.id)} style={{ width: 32, height: 32, color: 'var(--danger-color)' }}>
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -145,7 +179,7 @@ export default function Subscriptions() {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h2 className="card-title">Add Subscription</h2>
+              <h2 className="card-title">{editingId ? 'Edit Subscription' : 'Add Subscription'}</h2>
               <button className="btn-icon" onClick={() => setModalOpen(false)} style={{ width: 32, height: 32 }}>×</button>
             </div>
             <div className="modal-body">
@@ -181,7 +215,7 @@ export default function Subscriptions() {
                   <select className="input-field" value={formData.cardId} onChange={(e) => setFormData({...formData, cardId: e.target.value})}>
                     <option value="">None</option>
                     {cards.map(c => (
-                      <option key={c.id} value={c.id}>{c.type} ending {c.last4}</option>
+                      <option key={c.id} value={c.id}>{c.name} ({c.type} **{c.last4})</option>
                     ))}
                   </select>
                 </div>
@@ -197,7 +231,7 @@ export default function Subscriptions() {
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setModalOpen(false)}>Cancel</button>
               <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving...' : 'Save Subscription'}
+                {saving ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>

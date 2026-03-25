@@ -1,19 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Plus, CreditCard, Edit2 } from 'lucide-react';
+import { Plus, CreditCard, Edit2, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function PaymentMethods() {
   const [modalOpen, setModalOpen] = useState(false);
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    type: 'Visa',
-    last4: '',
-    balance: '',
-    currency: 'USD',
-  });
+  const emptyForm = {
+    name: '', type: 'Visa', last4: '', balance: '', currency: 'USD'
+  };
+  const [formData, setFormData] = useState(emptyForm);
 
   const fetchCards = async () => {
     try {
@@ -22,6 +21,7 @@ export default function PaymentMethods() {
       setCards(data);
     } catch (err) {
       console.error(err);
+      toast.error('Failed to load cards');
     } finally {
       setLoading(false);
     }
@@ -31,35 +31,71 @@ export default function PaymentMethods() {
     fetchCards();
   }, []);
 
+  const openAddModal = () => {
+    setEditingId(null);
+    setFormData(emptyForm);
+    setModalOpen(true);
+  };
+
+  const openEditModal = (card) => {
+    setEditingId(card.id);
+    setFormData({
+      name: card.name,
+      type: card.type,
+      last4: card.last4,
+      balance: card.balance,
+      currency: card.currency
+    });
+    setModalOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this payment method? It will suspend assigned subscriptions.")) return;
+    try {
+      toast.loading("Deleting...", { id: "delete-method" });
+      const res = await fetch(`http://localhost:5000/api/payment-methods/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error("Failed to delete card");
+      toast.success("Card deleted successfully!", { id: "delete-method" });
+      await fetchCards();
+    } catch (err) {
+      toast.error(err.message, { id: "delete-method" });
+    }
+  };
+
   const handleSave = async () => {
-    // Basic validation
-    if (!formData.name || !formData.balance) return alert("Please fill out required fields.");
+    if (!formData.name || !formData.balance) return toast.error("Please fill required fields (Name & Balance)");
     
     setSaving(true);
-    // Auto-generate random last 4 digits if not provided
     const last4 = formData.last4 || Math.floor(1000 + Math.random() * 9000).toString();
     const color = formData.type === 'Visa' 
         ? 'linear-gradient(135deg, #1A1F3C 0%, #2b3674 100%)' 
         : 'linear-gradient(135deg, #FF5F00 0%, #FF9900 100%)';
 
+    const payload = {
+      name: formData.name,
+      type: formData.type,
+      last4,
+      balance: parseFloat(formData.balance) || 0,
+      currency: formData.currency,
+      color,
+    };
+
     try {
-      await fetch('http://localhost:5000/api/payment-methods', {
-        method: 'POST',
+      const url = editingId ? `http://localhost:5000/api/payment-methods/${editingId}` : 'http://localhost:5000/api/payment-methods';
+      const method = editingId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          type: formData.type,
-          last4,
-          balance: parseFloat(formData.balance) || 0,
-          currency: formData.currency,
-          color,
-        })
+        body: JSON.stringify(payload)
       });
+      if (!res.ok) throw new Error("Failed to save card");
+
+      toast.success(editingId ? "Card updated!" : "Card added!");
       setModalOpen(false);
       await fetchCards();
-      setFormData({ name: '', type: 'Visa', last4: '', balance: '', currency: 'USD' });
     } catch (err) {
-      console.error(err);
+      toast.error(err.message);
     } finally {
       setSaving(false);
     }
@@ -69,7 +105,7 @@ export default function PaymentMethods() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1>Payment Methods</h1>
-        <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
+        <button className="btn btn-primary" onClick={openAddModal}>
           <Plus size={18} />
           Add Card
         </button>
@@ -97,10 +133,12 @@ export default function PaymentMethods() {
                   <div style={{ fontSize: '1.25rem', fontWeight: 700, fontStyle: 'italic' }}>{card.type}</div>
                 </div>
               </div>
-              <div className="flex justify-between items-center" style={{ padding: '1rem 1.5rem', background: 'var(--card-bg)' }}>
-                <span className="text-muted">Managed via Dashboard</span>
-                <button className="btn btn-secondary" style={{ padding: '0.5rem', borderRadius: '50%' }}>
+              <div className="flex justify-end gap-2 items-center" style={{ padding: '1rem 1.5rem', background: 'var(--card-bg)' }}>
+                <button className="btn btn-secondary" onClick={() => openEditModal(card)} style={{ padding: '0.5rem', borderRadius: '50%' }}>
                   <Edit2 size={16} />
+                </button>
+                <button className="btn" onClick={() => handleDelete(card.id)} style={{ padding: '0.5rem', borderRadius: '50%', background: 'var(--danger-bg)', color: 'var(--danger-color)' }}>
+                  <Trash2 size={16} />
                 </button>
               </div>
             </div>
@@ -112,7 +150,7 @@ export default function PaymentMethods() {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h2 className="card-title">Add Payment Method</h2>
+              <h2 className="card-title">{editingId ? 'Edit Payment Method' : 'Add Payment Method'}</h2>
               <button className="btn-icon" onClick={() => setModalOpen(false)} style={{ width: 32, height: 32 }}>×</button>
             </div>
             <div className="modal-body">
@@ -151,7 +189,7 @@ export default function PaymentMethods() {
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setModalOpen(false)}>Cancel</button>
               <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-                {saving ? 'Adding...' : 'Add Card'}
+                {saving ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>

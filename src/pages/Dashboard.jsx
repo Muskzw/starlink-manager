@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { DollarSign, Wallet, CalendarClock, AlertTriangle, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({ totalCost: 0, totalBalance: 0, upcoming: 0, atRisk: 0 });
   const [upcomingPayments, setUpcomingPayments] = useState([]);
   const [riskAlerts, setRiskAlerts] = useState([]);
@@ -94,7 +96,7 @@ export default function Dashboard() {
         <div className="card">
           <div className="card-header">
             <h2 className="card-title">Upcoming Payments</h2>
-            <button className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }}>View All</button>
+            <button className="btn btn-secondary" onClick={() => navigate('/subscriptions')} style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }}>View All</button>
           </div>
           <div className="table-container">
             <table className="table">
@@ -143,7 +145,13 @@ export default function Dashboard() {
                     <p style={{ fontSize: '0.875rem', color: alert.type === 'danger' ? 'var(--danger-color)' : 'var(--warning-color)', marginTop: '0.25rem' }}>{alert.issue}</p>
                   </div>
                 </div>
-                <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }}>Resolve</button>
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => navigate(alert.issue === 'Missing Card' ? '/payment-methods' : '/subscriptions')}
+                  style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }}
+                >
+                  Resolve
+                </button>
               </div>
             ))}
           </div>

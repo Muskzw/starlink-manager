@@ -4,7 +4,7 @@ export default function Topbar({ toggleSidebar }) {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
   
   return (
-    <header className="topbar">
+    <header className="topbar" style={{ background: 'var(--card-bg)', backdropFilter: 'none' }}>
       <div className="flex items-center gap-4">
         <button onClick={toggleSidebar} className="btn-icon">
           <Menu size={20} />

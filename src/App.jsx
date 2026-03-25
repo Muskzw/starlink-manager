@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Subscriptions from './pages/Subscriptions';
@@ -17,7 +18,9 @@ function ProtectedRoute() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <>
+      <Toaster position="top-right" />
+      <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
         
@@ -34,6 +37,7 @@ function App() {
         </Route>
       </Routes>
     </BrowserRouter>
+    </>
   );
 }
 

@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
+// Initialize Theme
+const initialTheme = localStorage.getItem('theme') || 'light';
+document.documentElement.setAttribute('data-theme', initialTheme);
+
 const originalFetch = window.fetch;
 window.fetch = async (...args) => {
   let [resource, config] = args;

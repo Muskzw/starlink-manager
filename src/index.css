@@ -4,6 +4,7 @@
   --bg-color: #f4f7fe;
   --sidebar-bg: #ffffff;
   --card-bg: #ffffff;
+  --input-bg: #ffffff;
   --text-primary: #1e293b;
   --text-secondary: #64748b;
   --border-color: #e2e8f0;
@@ -30,7 +31,24 @@
   --radius-lg: 16px;
   --radius-xl: 20px;
 
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme='dark'] {
+  --bg-color: #080f28;
+  --sidebar-bg: #111c44;
+  --card-bg: #111c44;
+  --input-bg: #18224d;
+  --text-primary: #ffffff;
+  --text-secondary: #a3aed1;
+  --border-color: rgba(255, 255, 255, 0.1);
+
+  --primary-light: #1a225c;
+  --success-bg: #0b3b36;
+  --warning-bg: #3b3512;
+  --danger-bg: #3d1b1f;
+
+  --shadow-soft: 0px 15px 40px rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -91,10 +109,10 @@ body {
 .card {
   background: var(--card-bg);
   border-radius: var(--radius-xl);
-  padding: 1.5rem;
+  padding: 2rem;
   box-shadow: var(--shadow-soft);
   transition: var(--transition);
-  border: 1px solid transparent;
+  border: 1px solid var(--border-color);
 }
 
 .card:hover {
@@ -144,7 +162,8 @@ h2 { font-size: 1.5rem; font-weight: 600; }
 
 .btn-primary:hover {
   background: var(--primary-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px 0 rgba(67, 24, 255, 0.5);
 }
 
 .btn-secondary {
@@ -211,19 +230,31 @@ h2 { font-size: 1.5rem; font-weight: 600; }
 }
 
 .input-field {
-  padding: 0.75rem 1rem;
+  padding: 0.875rem 1rem;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   font-size: 0.875rem;
   color: var(--text-primary);
+  background-color: var(--input-bg);
   transition: var(--transition);
   outline: none;
-  background: white;
+}
+
+.input-field:hover {
+  border-color: #94a3b8;
+}
+
+[data-theme='dark'] .input-field:hover {
+  border-color: #4b5563;
 }
 
 .input-field:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.input-field::placeholder {
+  color: var(--text-secondary);
 }
 
 /* Tables */
@@ -475,15 +506,21 @@ h2 { font-size: 1.5rem; font-weight: 600; }
   padding: 0.75rem 1rem 0.75rem 2.5rem;
   border: none;
   border-radius: 99px;
-  background: var(--bg-color);
+  background: var(--input-bg);
   font-size: 0.875rem;
+  color: var(--text-primary);
   transition: var(--transition);
   outline: none;
+  border: 1px solid var(--border-color);
 }
 
 .search-input:focus {
-  background: white;
-  box-shadow: 0 0 0 2px var(--primary-light);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.search-input::placeholder {
+  color: var(--text-secondary);
 }
 
 /* Responsive */
